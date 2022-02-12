@@ -11,7 +11,7 @@ from selenium.webdriver.common.alert import Alert
 FORM_PREVIEW_PATH = './preview.png'
 EDU_SITE_USER = os.getenv('EDU_SITE_USER')
 EDU_SITE_PASSWORD = os.getenv('EDU_SITE_PASSWORD')
-BOT_TOKEN = os.getenv('ALLOWED_IDS')
+BOT_TOKEN = os.getenv('BOT_TOKEN')
 ALLOWED_IDS = os.getenv('ALLOWED_IDS')
 
 
