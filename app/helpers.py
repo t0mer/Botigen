@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from loguru import logger
-from webdriver_manager.chrome import ChromeDriverManager
+# from webdriver_manager.chrome import ChromeDriverManager
 import time, os
 from os import path
 from selenium import webdriver
