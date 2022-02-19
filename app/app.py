@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from os import path
 from loguru import logger
-import helpers, helpers, json, time, os
+import helpers, helpers, json, time, os, codecs, json
 from telebot import types, TeleBot
 from telebot.custom_filters import AdvancedCustomFilter
 from telebot.callback_data import CallbackData, CallbackDataFilter
@@ -9,6 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.alert import Alert
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+
 
 FORM_PREVIEW_PATH = './preview.png'
 EDU_SITE_USER = os.getenv('EDU_SITE_USER')
@@ -19,7 +20,7 @@ ALLOWED_IDS = os.getenv('ALLOWED_IDS')
 KIDS = []
 bot = TeleBot(BOT_TOKEN)
 browser = None
-KIDS_FILE = "./kids.txt"
+KIDS_FILE = "./kids.json"
 os.environ.setdefault('PARENT_NAME', "")
 
 # -------------- Set command list -------------------------------------
@@ -91,14 +92,24 @@ class KidsCallbackFilter(AdvancedCustomFilter):
 
 # -------------- Write kids array to file for better response time
 def WriteKidsToFile():
-    with open(KIDS_FILE, 'w') as kidsfile:
-        kidsfile.write(json.dumps(KIDS))
+    with codecs.open(
+            KIDS_FILE, "w", encoding="utf-8") as outfile:
+        json.dump(
+            KIDS,
+            outfile,
+            skipkeys=False,
+            ensure_ascii=False,
+            indent=4,
+            separators=None,
+            default=None,
+            sort_keys=True,
+        )
 
 # -------------- Reading kids list from file ------------------
 def ReadKidsFromFile():
-    with open(KIDS_FILE, 'r') as kids_array:
-        global KIDS
-        KIDS = json.loads(kids_array.read())
+    with open(KIDS_FILE, encoding="utf-8"
+            ) as data_file:
+        KIDS = json.loads(data_file.read())
 
 
 # -------------- Login method ---------------------------------
@@ -120,7 +131,7 @@ def Login():
 # ----------------- Handle the /start command ---------------------------
 @bot.message_handler(commands=['start','sign'])
 def kids_command_handler(message: types.Message):
-    bot.send_message(message.chat.id, "אנא המתן כמה שניות עד לקבלת התפריט")
+    # bot.send_message(message.chat.id, "אנא המתן כמה שניות עד לקבלת התפריט")
     GetKidsList()
     try:
         parent = os.getenv("PARENT_NAME")
@@ -130,7 +141,7 @@ def kids_command_handler(message: types.Message):
         parent = message.from_user.first_name
         logger.error(str(e))
     logger.info("Opening menu")
-    welcome = "שלום *{}*.\n\n".format(parent) + "ברוך הבא לבוט דיווח בדיקות אנטיגן של משרד החינוך\n\n" \
+    welcome = "שלום *{}*.\n\n".format(parent) + "ברוך הבא לבוט דיווח בדיקות אנטיגן אל משרד החינוך\n\n" \
               + "כדי לבצע דיווח על ילד בודד או יותר לחץ על דיווח בודד\n\n" \
               + "כדי לבצע דיווח על כל הילדים לחץ על דיווח עבור כל הילדים\n\n" \
               + "במידה וכבר בחרת ילדים לדיווח לחץ על דיווח וסיום\n\n" \
