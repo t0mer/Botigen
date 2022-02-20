@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from os import path
 from loguru import logger
-import helpers, helpers, json, time, os, codecs, json
+import helpers, helpers, json, time, os
 from telebot import types, TeleBot
 from telebot.custom_filters import AdvancedCustomFilter
 from telebot.callback_data import CallbackData, CallbackDataFilter
@@ -9,7 +9,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.alert import Alert
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-
+import codecs
+import json
 
 FORM_PREVIEW_PATH = './preview.png'
 EDU_SITE_USER = os.getenv('EDU_SITE_USER')
@@ -31,20 +32,25 @@ commands = [{"text": "דיווח בודד", "callback_data": "get_kids_list"},
 
 kids_list = CallbackData('kid_id', prefix='kids')
 
+
 # -------------- Building kids selection inline keyboard
 def kids_keyboard():
+    logger.debug("Build Kids Keyboard")
     markup = types.InlineKeyboardMarkup(row_width=1)
     result = []
+    logger.debug("kids:" + str(KIDS))
     for kid in KIDS:
+        logger.debug("kid:" + str(kid))
         markup.add(types.InlineKeyboardButton(
             text=kid['Name'],
             callback_data=kids_list.new(kid_id=kid["Index"])))
-
         result.append(kid["Sign"])
+    logger.debug("result:" + str(result))
     if True in result:
         markup.add(types.InlineKeyboardButton(text="דיווח וסיום", callback_data="finish"))
     markup.add(types.InlineKeyboardButton(text="חזרה", callback_data="back"))
     return markup
+
 
 # -------------- Get Parent name -------------------
 def GetParentName():
@@ -55,6 +61,7 @@ def GetParentName():
     except Exception as e:
         logger.error("oh snap something went wrong")
         logger.error(str(e))
+
 
 # ------------- Build command keyboard -----------------
 def command_keyboard():
@@ -70,6 +77,7 @@ def command_keyboard():
         ], row_width=1
     )
 
+
 # ------------- Adding back button to the keyboard -------------
 def back_keyboard():
     return types.InlineKeyboardMarkup(
@@ -83,12 +91,14 @@ def back_keyboard():
         ]
     )
 
+
 # ------------- Creating custom filter
 class KidsCallbackFilter(AdvancedCustomFilter):
     key = 'config'
 
     def check(self, call: types.CallbackQuery, config: CallbackDataFilter):
         return config.check(query=call)
+
 
 # -------------- Write kids array to file for better response time
 def WriteKidsToFile():
@@ -104,12 +114,18 @@ def WriteKidsToFile():
             default=None,
             sort_keys=True,
         )
+    # with open(KIDS_FILE, 'w') as kidsfile:
+    #     kidsfile.write(json.dumps(KIDS))
+
 
 # -------------- Reading kids list from file ------------------
 def ReadKidsFromFile():
+    global KIDS
+    logger.debug("Read Kids File")
     with open(KIDS_FILE, encoding="utf-8"
-            ) as data_file:
+              ) as data_file:
         KIDS = json.loads(data_file.read())
+    logger.debug("Kids List:" + str(KIDS))
 
 
 # -------------- Login method ---------------------------------
@@ -128,8 +144,9 @@ def Login():
     logger.info("Logged in")
     return browser
 
+
 # ----------------- Handle the /start command ---------------------------
-@bot.message_handler(commands=['start','sign'])
+@bot.message_handler(commands=['start', 'sign'])
 def kids_command_handler(message: types.Message):
     # bot.send_message(message.chat.id, "אנא המתן כמה שניות עד לקבלת התפריט")
     GetKidsList()
@@ -148,6 +165,7 @@ def kids_command_handler(message: types.Message):
               + "כדי לצאת לחץ על ביטול ויציאה\n\n"
     bot.send_message(chat_id=message.chat.id, text=welcome, reply_markup=command_keyboard(), parse_mode='Markdown')
 
+
 # ---------------- Handle kid selection -------------------------
 @bot.callback_query_handler(func=None, config=kids_list.filter())
 def kids_callback(call: types.CallbackQuery):
@@ -162,11 +180,13 @@ def kids_callback(call: types.CallbackQuery):
         bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id
                                       , reply_markup=kids_keyboard())
 
+
 # ---------------- Handle the back button --------------------
 @bot.callback_query_handler(func=lambda c: c.data == 'back')
 def back_callback(call: types.CallbackQuery):
     bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id
                                   , reply_markup=command_keyboard())
+
 
 # --------------- Handle the List kids button --------------------------
 @bot.callback_query_handler(func=lambda c: c.data == 'get_kids_list')
@@ -175,6 +195,7 @@ def display_kids(call: types.CallbackQuery):
     bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=None, )
     bot.send_message(chat_id=call.message.chat.id, text='בחר ילד/ה בכדי לדווח :',
                      reply_markup=kids_keyboard())
+
 
 # -------------- Handle the finish / finish all buttons ---------------------------
 @bot.callback_query_handler(func=lambda c: c.data == "finish" or c.data == "finish_all")
@@ -194,6 +215,7 @@ def finish_and_sign(call: types.CallbackQuery):
     browser.quit()
     KIDS.clear()
 
+
 # ---------------- Handle stop button ----------------------------
 @bot.callback_query_handler(func=lambda query: query.data == "stop")
 @bot.message_handler(commands=['stop'])
@@ -202,6 +224,7 @@ def stop(message):
     logger.info("Stop and clear all connection")
     browser.quit()
     KIDS.clear()
+
 
 # ------------------- Get kids list ------------------------------
 def GetKidsList():
@@ -216,11 +239,10 @@ def GetKidsList():
             ids = ids[1::2]
             for i in range(len(names)):
                 KIDS.append({"Name": names[i].text.split(" ")[0], "Id": ids[i].text, "Index": str(i), "Sign": False})
-            if len(KIDS)>0:
+            if len(KIDS) > 0:
                 logger.info('Writing kids array to file')
                 WriteKidsToFile()
     except Exception as e:
-        # bot.send_message(chat_id=message.chat.id, text="got in error")
         logger.error("oh snap something went wrong")
         logger.error(str(e))
 
@@ -247,13 +269,16 @@ def sign_and_finish():
     alert = Alert(browser)
     alert.accept()
 
+
 def init():
     Login()
     GetParentName()
     GetKidsList()
     browser.quit()
 
+
 if __name__ == '__main__':
+    logger.debug("Starting")
     init()
     logger.debug("I'm running and wating for commands")
     bot.add_custom_filter(KidsCallbackFilter())
